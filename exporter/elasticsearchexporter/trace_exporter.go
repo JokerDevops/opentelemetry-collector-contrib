@@ -19,6 +19,7 @@ package elasticsearchexporter // import "github.com/open-telemetry/opentelemetry
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/ptrace"
@@ -106,5 +107,7 @@ func (e *elasticsearchTracesExporter) pushTraceRecord(ctx context.Context, resou
 	if err != nil {
 		return fmt.Errorf("Failed to encode trace record: %w", err)
 	}
-	return pushDocuments(ctx, e.logger, e.index, document, e.bulkIndexer, e.maxAttempts)
+	date := time.Now().Format("2006.01.02")
+	findex := e.index + "-" + date
+	return pushDocuments(ctx, e.logger, findex, document, e.bulkIndexer, e.maxAttempts)
 }

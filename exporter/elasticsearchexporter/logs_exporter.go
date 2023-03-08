@@ -19,6 +19,7 @@ package elasticsearchexporter // import "github.com/open-telemetry/opentelemetry
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -27,11 +28,9 @@ import (
 )
 
 type elasticsearchLogsExporter struct {
-	logger *zap.Logger
-
+	logger      *zap.Logger
 	index       string
 	maxAttempts int
-
 	client      *esClientCurrent
 	bulkIndexer esBulkIndexerCurrent
 	model       mappingModel
@@ -64,15 +63,11 @@ func newLogsExporter(logger *zap.Logger, cfg *Config) (*elasticsearchLogsExporte
 	// TODO: Apply encoding and field mapping settings.
 	model := &encodeModel{dedup: true, dedot: false}
 
-	indexStr := cfg.LogsIndex
-	if cfg.Index != "" {
-		indexStr = cfg.Index
-	}
 	esLogsExp := &elasticsearchLogsExporter{
 		logger:      logger,
 		client:      client,
 		bulkIndexer: bulkIndexer,
-		index:       indexStr,
+		index:       cfg.LogsIndex,
 		maxAttempts: maxAttempts,
 		model:       model,
 	}
@@ -113,5 +108,7 @@ func (e *elasticsearchLogsExporter) pushLogRecord(ctx context.Context, resource 
 	if err != nil {
 		return fmt.Errorf("Failed to encode log event: %w", err)
 	}
-	return pushDocuments(ctx, e.logger, e.index, document, e.bulkIndexer, e.maxAttempts)
+	date := time.Now().Format("2006.01.02")
+	findex := e.index + "-" + date
+	return pushDocuments(ctx, e.logger, findex, document, e.bulkIndexer, e.maxAttempts)
 }
